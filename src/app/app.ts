@@ -66,20 +66,68 @@ export class App {
     })
     return Array.from(map.values());
   })
+  // predictCompletionDate(goalWeight: number): Date | null {
+  //   const data = this.sortedEntries();
+  //   if (data.length < 2) return null; // Precisa de min 2 pontos para traçar reta
+
+  //   // Pegamos apenas as últimas X entradas para a previsão ser mais realista (tendência atual)
+  //   // Ex: Últimas 10 pesagens. Se usar todas, uma perda antiga lenta distorce a nova rápida.
+  //   const recentData = data.slice(-10); 
+
+  //   // Prepara dados para regressão (X = Timestamp, Y = Peso)
+  //   const n = recentData.length;
+  //   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+  //   for (const entry of recentData) {
+  //     const x = new Date(entry.date).getTime();
+  //     const y = entry.weight;
+      
+  //     sumX += x;
+  //     sumY += y;
+  //     sumXY += (x * y);
+  //     sumXX += (x * x);
+  //   }
+
+  //   // Fórmulas da Regressão Linear (Slope 'm' e Intercept 'b')
+  //   // y = mx + b  ->  weight = (slope * time) + intercept
+  //   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  //   const intercept = (sumY - slope * sumX) / n;
+
+  //   // Se slope >= 0, você não está emagrecendo (está mantendo ou subindo), impossível prever data
+  //   if (slope >= 0) return null;
+
+  //   // Queremos saber o X (data) quando Y for o goalWeight
+  //   // goalWeight = slope * targetDate + intercept
+  //   // targetDate = (goalWeight - intercept) / slope
+  //   const targetTime = (goalWeight - intercept) / slope;
+
+  //   // Se a data for no passado (ex: meta já batida matematicamente), retornamos hoje
+  //   if (targetTime < new Date().getTime()) return new Date();
+
+  //   return new Date(targetTime);
+  // }
   predictCompletionDate(goalWeight: number): Date | null {
     const data = this.sortedEntries();
-    if (data.length < 2) return null; // Precisa de min 2 pontos para traçar reta
+    if (data.length < 2) return null;
 
-    // Pegamos apenas as últimas X entradas para a previsão ser mais realista (tendência atual)
-    // Ex: Últimas 10 pesagens. Se usar todas, uma perda antiga lenta distorce a nova rápida.
-    const recentData = data.slice(-10); 
+    // MELHORIA: Em vez de pegar 10 itens, pegamos os últimos 90 dias
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setDate(threeMonthsAgo.getDate() - 90);
+    
+    // Filtra apenas registros dos últimos 90 dias
+    let recentData = data.filter(d => d.date >= threeMonthsAgo);
 
-    // Prepara dados para regressão (X = Timestamp, Y = Peso)
+    // Fallback: Se tiver poucos dados nos ultimos 3 meses (ex: parou de pesar),
+    // pega pelo menos as ultimas 20 pesagens para garantir calculo
+    if (recentData.length < 5) {
+        recentData = data.slice(-20);
+    }
+
     const n = recentData.length;
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
 
     for (const entry of recentData) {
-      const x = new Date(entry.date).getTime();
+      const x = entry.date.getTime();
       const y = entry.weight;
       
       sumX += x;
@@ -88,25 +136,26 @@ export class App {
       sumXX += (x * x);
     }
 
-    // Fórmulas da Regressão Linear (Slope 'm' e Intercept 'b')
-    // y = mx + b  ->  weight = (slope * time) + intercept
+    // Calculando a inclinação (Slope)
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
 
-    // Se slope >= 0, você não está emagrecendo (está mantendo ou subindo), impossível prever data
+    // Se slope >= 0, significa tendência de alta ou estabilidade
     if (slope >= 0) return null;
 
-    // Queremos saber o X (data) quando Y for o goalWeight
-    // goalWeight = slope * targetDate + intercept
-    // targetDate = (goalWeight - intercept) / slope
     const targetTime = (goalWeight - intercept) / slope;
-
-    // Se a data for no passado (ex: meta já batida matematicamente), retornamos hoje
+    
+    // Validação de segurança para não travar o navegador com datas absurdas
+    // Se a data for muito longe (ex: mais de 10 anos), retorna null ou limita
+    const maxFuture = new Date();
+    maxFuture.setFullYear(maxFuture.getFullYear() + 5);
+    
+    if (targetTime > maxFuture.getTime()) return maxFuture;
     if (targetTime < new Date().getTime()) return new Date();
 
     return new Date(targetTime);
   }
-  
+
   chartOptions = computed<EChartsOption>(() => {
     const data = this.viewMode() === 'all' 
       ? this.sortedEntries() 
