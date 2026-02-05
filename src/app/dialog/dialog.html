@@ -1,0 +1,20 @@
+<h2 mat-dialog-title>{{ edit ? 'Edit' : 'New' }} Entry</h2>
+<mat-dialog-content>
+  <form [formGroup]="recordForm" style="display: flex; flex-direction: column; gap: 10px;">
+    <mat-form-field subscriptSizing="dynamic" style="width: 100%;">
+      <mat-label>Select a date</mat-label>
+      <input matInput [matDatepicker]="picker" formControlName="date">
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+    <mat-form-field subscriptSizing="dynamic" style="width: 100%;">
+      <input matInput formControlName="weight" inputmode="decimal" />
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  @if (edit) {
+    <button matButton (click)="remove()">Delete</button>
+  }
+  <button matButton (click)="save()" cdkFocusInitial>Save</button>
+</mat-dialog-actions>
