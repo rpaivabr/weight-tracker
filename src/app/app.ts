@@ -27,7 +27,7 @@ export class App {
   activePage = signal<'table' | 'chart'>('chart');
   viewMode = signal<'all' | 'week' | 'month'>('all');
   // goalWeight = signal(90);
-  finalGoal = signal(90);
+  finalGoal = signal(localStorage.getItem('app-weight-tracker-goal') ? JSON.parse(localStorage.getItem('app-weight-tracker-goal')!) : 0);
   // Computed apenas para mostrar o texto da data na tela
   predictionInfo = computed(() => {
     const goal = this.finalGoal();
@@ -241,7 +241,7 @@ export class App {
             return date.toLocaleDateString('pt-BR', { 
               day: '2-digit', 
               month: '2-digit', 
-              // year: '2-digit' // ou 'numeric' para 2026 completo
+              year: '2-digit' // ou 'numeric' para 2026 completo
             });
           },
           // Opcional: Rotaciona o texto se ficar muito apertado
@@ -329,8 +329,11 @@ export class App {
       ]
     }
   })
-  localStorageEffect = effect(() => {
+  localStorageEntriesEffect = effect(() => {
     localStorage.setItem('app-weight-tracker', JSON.stringify(this.entries()));
+  })
+  localStorageGoalEffect = effect(() => {
+    localStorage.setItem('app-weight-tracker-goal', JSON.stringify(this.finalGoal()));
   })
   openDialog(index?: number) {
     const data = index === undefined ? undefined : this.entries()[index];
