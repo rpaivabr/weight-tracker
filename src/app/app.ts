@@ -392,10 +392,11 @@ export class App {
         console.log(result);
         if (result === undefined) return;
         if (result === null) {
-          this.entries.update(values => values.filter((value, i) => i !== index));
+          const newEntries = [...this.sortedEntries()];
+          this.entries.set(newEntries.filter((_, i) => i !== index));
           return;
         }
-        const newEntries = [...this.entries()];
+        const newEntries = [...this.sortedEntries()];
         if (index !== undefined && index >= 0) {
           newEntries[index] = {...result};
         } else {
